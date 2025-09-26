@@ -13,32 +13,32 @@ export function DashboardHeader({ userData, onProfileClick, onMenuClick }) {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
-      <div className="flex items-center justify-between px-6 sm:px-8 py-3 sm:py-4">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Button 
             variant="ghost" 
             size="icon" 
-            className="lg:hidden h-12 w-12"
+            className="lg:hidden h-14 w-14 sm:h-16 sm:w-16"
             onClick={onMenuClick}
           >
-            <Menu className="h-8 w-8" />
+            <Menu className="h-8 w-8 sm:h-10 sm:w-10" />
           </Button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 cursor-pointer" onClick={() => window.location.reload()}>
             <img 
               src="/app-logo (2).png" 
               alt="TrackMate Logo" 
-              className="h-11 w-11 sm:h-12 sm:w-12 drop-shadow-lg"
+              className="h-10 w-10 sm:h-11 sm:w-11 drop-shadow-lg"
             />
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">TrackMate</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 cursor-pointer">TrackMate</h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <div className="text-right hidden sm:block">
-            <div className="text-lg font-medium text-gray-900 inter-text">
+            <div className="text-sm sm:text-lg font-medium text-gray-900 inter-text">
               {student.firstName} {student.lastName}
             </div>
-            <div className="text-base text-gray-500 inter-text">
+            <div className="text-xs sm:text-base text-gray-500 inter-text">
               {student.studentId || "S69652"}
             </div>
           </div>

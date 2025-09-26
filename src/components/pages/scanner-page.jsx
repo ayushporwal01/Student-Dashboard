@@ -80,53 +80,31 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
       setMessage("Connecting to BLE beacon...");
       const server = await device.gatt.connect();
       
-      try {
-        // Try to get the service
-        const service = await server.getPrimaryService(serviceUUID);
-        
-        // Create beacon data
-        const beacon = {
-          id: device.id || "BEACON-" + Math.floor(1000 + Math.random() * 9000),
-          name: device.name || "Classroom Beacon",
-          rssi: "N/A",
-          distance: "N/A",
-          timestamp: new Date().toLocaleTimeString()
-        };
-        
-        setBeaconData(beacon);
-        setScanStatus("found");
-        setMessage(`Found beacon: ${beacon.name}`);
-        
-        // Automatically complete connection after a short delay
-        setTimeout(() => {
-          completeBLEConnection();
-        }, 1500);
-      } catch (serviceError) {
-        console.error("Service error:", serviceError);
-        // If we can't get the specific service, still allow connection to the device
-        const beacon = {
-          id: device.id || "BEACON-" + Math.floor(1000 + Math.random() * 9000),
-          name: device.name || "Classroom Beacon",
-          rssi: "N/A",
-          distance: "N/A",
-          timestamp: new Date().toLocaleTimeString()
-        };
-        
-        setBeaconData(beacon);
-        setScanStatus("found");
-        setMessage(`Connected to device: ${beacon.name}`);
-        
-        // Still proceed with connection
-        setTimeout(() => {
-          completeBLEConnection();
-        }, 1500);
-      }
+      // Create beacon data immediately after connection without waiting for service
+      const beacon = {
+        id: device.id || "BEACON-" + Math.floor(1000 + Math.random() * 9000),
+        name: device.name || "Classroom Beacon",
+        rssi: "N/A",
+        distance: "N/A",
+        timestamp: new Date().toLocaleTimeString()
+      };
+      
+      setBeaconData(beacon);
+      setScanStatus("found");
+      setMessage(`Connected to beacon: ${beacon.name}`);
+      
+      // Automatically complete connection after a short delay
+      setTimeout(() => {
+        completeBLEConnection();
+      }, 1000);
     } catch (error) {
       console.error("BLE scan error:", error);
       setScanStatus("error");
       // Provide more specific error messages
       if (error.name === "NotFoundError") {
         setMessage("No BLE devices found. Please make sure your BLE beacon is nearby and advertising.");
+      } else if (error.name === "NotAllowedError") {
+        setMessage("Bluetooth access denied. Please allow Bluetooth permissions to connect.");
       } else {
         setMessage(`Error: ${error.message || "Failed to scan for devices. Make sure Bluetooth is enabled."}`);
       }
@@ -209,13 +187,13 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
   };
 
   return (
-    <div className="pt-6 space-y-6 route-page">
-      <div className="flex items-center justify-between">
+    <div className="pt-4 sm:pt-6 space-y-6 route-page">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2 montserrat-font">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1 sm:mb-2 montserrat-font">
             Attendance Scanner
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             {bleConnected 
               ? "BLE beacon connected. Opening QR scanner..." 
               : "Connect to BLE beacon to begin attendance process."}
@@ -223,35 +201,35 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6">
         {/* Scanner Card */}
-        <Card className={`glass-card border-2 ${getStatusColor()} transition-all duration-300 lg:col-span-2`}>
+        <Card className={`glass-card border-2 ${getStatusColor()} transition-all duration-300`}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
               <Bluetooth className="h-5 w-5" />
               BLE Beacon Connection
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex flex-col items-center justify-center py-8">
-              <div className="mb-6">
+            <div className="flex flex-col items-center justify-center py-6 sm:py-8">
+              <div className="mb-4 sm:mb-6">
                 {getStatusIcon()}
               </div>
               
-              <p className="text-center text-lg mb-6 max-w-md">
+              <p className="text-center text-base sm:text-lg mb-4 sm:mb-6 px-4">
                 {message}
               </p>
               
               {/* BLE Device Details */}
               {beaconData && (
-                <div className="w-full max-w-md bg-white/30 rounded-lg p-4 mb-6 border border-white/20">
+                <div className="w-full max-w-md bg-white/30 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 border border-white/20">
                   <h3 className="font-semibold text-lg mb-2">Beacon Details</h3>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <span className="text-muted-foreground">ID:</span>
-                    <span>{beaconData.id}</span>
+                    <span className="truncate">{beaconData.id}</span>
                     
                     <span className="text-muted-foreground">Name:</span>
-                    <span>{beaconData.name}</span>
+                    <span className="truncate">{beaconData.name}</span>
                     
                     <span className="text-muted-foreground">Signal:</span>
                     <span>{beaconData.rssi}</span>
@@ -265,11 +243,11 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
                 </div>
               )}
               
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md px-4">
                 {!isScanning ? (
                   <Button 
                     onClick={startBLEScanning} 
-                    className="px-8 py-6 text-lg"
+                    className="px-6 py-5 text-base sm:text-lg w-full"
                     disabled={isScanning}
                   >
                     <Bluetooth className="mr-2 h-5 w-5" />
@@ -279,7 +257,7 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
                   <Button 
                     variant="outline" 
                     onClick={cancelScan} 
-                    className="px-8 py-6 text-lg"
+                    className="px-6 py-5 text-base sm:text-lg w-full"
                   >
                     <XCircle className="mr-2 h-5 w-5" />
                     Cancel Scan
@@ -290,7 +268,7 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
               {bleConnected && (
                 <div className="flex items-center justify-center gap-2 mt-4">
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>Opening QR scanner...</span>
+                  <span className="text-sm sm:text-base">Opening QR scanner...</span>
                 </div>
               )}
             </div>
@@ -300,7 +278,7 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
         {/* Info Card */}
         <Card className="glass-card border-white/30">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
               <HelpCircle className="h-5 w-5" />
               Need Help?
             </CardTitle>
@@ -309,7 +287,7 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
             <div className="flex flex-col gap-3">
               <Button 
                 onClick={onShowHowItWorks}
-                className="w-full py-6"
+                className="w-full py-5 text-base sm:text-lg"
               >
                 <HelpCircle className="mr-2 h-5 w-5" />
                 How It Works

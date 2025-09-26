@@ -55,12 +55,17 @@ export function DashboardSidebar({ currentPage, onPageChange, onExpandedChange, 
 
   // Handle mobile menu open state
   useEffect(() => {
-    if (isMobile && isMobileMenuOpen) {
-      setIsExpanded(true);
-    } else if (isMobile && !isMobileMenuOpen) {
-      setIsExpanded(false);
+    if (isMobile) {
+      setIsExpanded(isMobileMenuOpen || false);
     }
   }, [isMobileMenuOpen, isMobile]);
+
+  // Also handle the case when we're no longer on mobile
+  useEffect(() => {
+    if (!isMobile) {
+      setIsExpanded(true); // Always expanded on desktop
+    }
+  }, [isMobile]);
 
   const menuItems = [
     { icon: Home, label: "Dashboard", page: "dashboard" },
@@ -88,7 +93,19 @@ export function DashboardSidebar({ currentPage, onPageChange, onExpandedChange, 
     onPageChange(page);
     if (isMobile) {
       setIsExpanded(false);
-      onExpandedChange?.(false);
+      // Only call onExpandedChange if it's a function
+      if (typeof onExpandedChange === 'function') {
+        onExpandedChange(false);
+      }
+    }
+  };
+
+  const toggleSidebar = () => {
+    const newExpanded = !isExpanded;
+    setIsExpanded(newExpanded);
+    // Only call onExpandedChange if it's a function
+    if (typeof onExpandedChange === 'function') {
+      onExpandedChange(newExpanded);
     }
   };
 
@@ -124,23 +141,19 @@ export function DashboardSidebar({ currentPage, onPageChange, onExpandedChange, 
           <div className="px-1 sm:px-2 py-2 sm:py-1 space-y-1 pt-6 sm:pt-8">
             <Button
               variant="ghost"
-              onClick={() => {
-                const newExpanded = !isExpanded;
-                setIsExpanded(newExpanded);
-                onExpandedChange?.(newExpanded);
-              }}
+              onClick={toggleSidebar}
               className={cn(
-                "text-sidebar-foreground text-sm sm:text-base h-10 sm:h-12",
+                "text-sidebar-foreground text-sm sm:text-base h-12 sm:h-14",
                 isExpanded 
                   ? "w-full justify-start gap-2 sm:gap-3"
-                  : "w-12 p-0 flex items-center justify-center shrink-0"
+                  : "w-12 sm:w-14 p-0 flex items-center justify-center shrink-0"
               )}
             >
-              <div className="flex items-center justify-center min-w-[20px]">
-                <div className="relative w-8 h-8 flex items-center justify-center">
+              <div className="flex items-center justify-center min-w-[24px]">
+                <div className="relative w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
                   <svg
                     viewBox="0 0 24 24"
-                    className="w-8 h-8 text-sidebar-foreground"
+                    className="w-8 h-8 sm:w-10 sm:h-10 text-sidebar-foreground"
                   >
                     <path
                       ref={topLineRef}

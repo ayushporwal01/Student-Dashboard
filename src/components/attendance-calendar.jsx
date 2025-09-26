@@ -10,7 +10,7 @@ export function AttendanceCalendar({ onDateSelect }) {
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), 1);
   });
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
 
   const attendanceData = {
     // September 16, 2025 (Tuesday) - specific subjects
@@ -63,6 +63,15 @@ export function AttendanceCalendar({ onDateSelect }) {
       subjectDetails: [
         { name: "Python", status: "present", time: "09:30 AM - 10:30 AM" },
         { name: "Computer Graphics", status: "absent", time: "10:30 AM - 11:30 AM" },
+      ],
+    },
+    // September 10, 2025 (Wednesday) - specific subjects
+    "2025-09-10": {
+      status: "partial",
+      subjects: ["Web Designing", "Cloud Computing"],
+      subjectDetails: [
+        { name: "Web Designing", status: "present", time: "09:30 AM - 10:30 AM" },
+        { name: "Cloud Computing", status: "absent", time: "10:30 AM - 11:30 AM" },
       ],
     },
     // Past attendance data with mix of present/absent
@@ -126,7 +135,7 @@ export function AttendanceCalendar({ onDateSelect }) {
   };
 
   const isSelected = (date) => {
-    return date.toDateString() === selectedDate.toDateString();
+    return selectedDate && date.toDateString() === selectedDate.toDateString();
   };
 
   const getDateKey = (date) => {
@@ -274,10 +283,10 @@ export function AttendanceCalendar({ onDateSelect }) {
                 
                 // Updated access control:
                 // - All past dates and all dates with attendance data are accessible
-                // - After Sept 17, 2025 are blocked
+                // - After Sept 17, 2025 are blocked (except Sept 10 which we're adding)
                 const hasData = hasAttendanceData(date);
                 const isAccessiblePastDate = !isFuture || hasData;
-                const isBlockedDate = date > new Date(2025, 8, 17); // After September 17, 2025
+                const isBlockedDate = date > new Date(2025, 8, 17) && dateKey !== "2025-09-10"; // After September 17, 2025 (but allow Sept 10)
                 const isClickable = isAccessiblePastDate && !isBlockedDate;
 
                 weekDays.push(
@@ -285,8 +294,8 @@ export function AttendanceCalendar({ onDateSelect }) {
                     key={day}
                     variant="ghost"
                     className={cn(
-                      "h-8 w-8 sm:h-10 sm:w-10 p-0 text-base sm:text-lg font-medium relative rounded-md",
-                      // Apply black box styling for both Sept 16 only
+                      "h-8 w-8 sm:h-10 sm:w-10 p-0 text-base sm:text-lg font-medium relative rounded-md focus:outline-none focus:ring-0 focus:ring-offset-0",
+                      // Apply black box styling for Sept 16 only
                       dateKey === "2025-09-16" && "bg-gray-900 text-white", // BLACK background for Sept 16
                       dateKey === "2025-09-17" && "text-blue-600", // BLUE text for Sept 17
                       isWeekend && 
@@ -308,12 +317,18 @@ export function AttendanceCalendar({ onDateSelect }) {
                         dateKey !== "2025-09-19" && 
                         !isWeekend && 
                         "text-blue-600",
-                      isBlockedDate && "text-gray-400 cursor-not-allowed border-transparent"
+                      isBlockedDate && "text-gray-400 cursor-not-allowed border-transparent",
+                      // Show blue background for selected date with a strong blue box
+                      isSelected(date) && "bg-blue-500 text-white border-2 border-blue-600 shadow-lg"
                     )}
                     onClick={() => {
                       if (isClickable && !isBlockedDate) {
                         handleDateClick(day);
                       }
+                    }}
+                    onTouchStart={(e) => {
+                      // Prevent focus on touch devices
+                      e.preventDefault();
                     }}
                     disabled={!isClickable || isBlockedDate}
                   >

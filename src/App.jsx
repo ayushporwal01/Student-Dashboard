@@ -38,12 +38,6 @@ function DashboardLayout({
   displayText,
   typingComplete
 }) {
-  const [localSidebarExpanded, setLocalSidebarExpanded] = useState(sidebarExpanded);
-  
-  useEffect(() => {
-    setLocalSidebarExpanded(sidebarExpanded);
-  }, [sidebarExpanded]);
-  
   return (
     <>
       <DashboardHeader 
@@ -55,14 +49,14 @@ function DashboardLayout({
         <DashboardSidebar 
           currentPage={currentPage} 
           onPageChange={handleSidebarNavigation}
-          onExpandedChange={setLocalSidebarExpanded}
-          isMobileMenuOpen={localSidebarExpanded && isMobile}
+          onExpandedChange={handleMenuClick} // Pass the same function that opens the menu to close it
+          isMobileMenuOpen={sidebarExpanded && isMobile}
         />
         <main className={cn(
           "flex-1 transition-all duration-300 ease-in-out flex justify-center",
           isMobile 
             ? "ml-0"  // Remove margin on mobile since sidebar slides in
-            : localSidebarExpanded 
+            : sidebarExpanded 
             ? "ml-64" 
             : "ml-16"
         )}>
@@ -225,7 +219,7 @@ function AppContent() {
   };
 
   const handleMenuClick = () => {
-    setSidebarExpanded(true);
+    setSidebarExpanded(prev => !prev);
   };
 
   const renderPage = () => {
