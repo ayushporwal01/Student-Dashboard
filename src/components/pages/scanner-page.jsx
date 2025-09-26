@@ -32,10 +32,26 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
 
   // Check if Web Bluetooth is available
   const isWebBLEAvailable = () => {
+    // Check for Web Bluetooth support
     if (!navigator.bluetooth) {
       console.log("Web Bluetooth is not available!");
       return false;
     }
+    
+    // Additional checks for mobile compatibility
+    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      // On mobile, we need to ensure we're using a supported browser
+      const isChrome = /Chrome/i.test(navigator.userAgent) && /Google Inc/i.test(navigator.vendor);
+      const isEdge = /Edg/i.test(navigator.userAgent);
+      const isOpera = /OPR/i.test(navigator.userAgent);
+      
+      if (!(isChrome || isEdge || isOpera)) {
+        console.log("Mobile browser may not support Web Bluetooth properly");
+        return false;
+      }
+    }
+    
     return true;
   };
 
@@ -138,9 +154,9 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
     
     if (!isWebBLEAvailable()) {
       setScanStatus("error");
-      setMessage("Web Bluetooth is not available in your browser. Please use Chrome or Edge on a supported device.");
+      setMessage("Web Bluetooth is not available in your browser. Please use Chrome, Edge, or Opera on a supported device.");
       toast.error("Web Bluetooth not available", {
-        description: "Please use Chrome or Edge on a supported device."
+        description: "Please use Chrome, Edge, or Opera on a supported device."
       });
       return;
     }
@@ -148,7 +164,20 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
     try {
       setIsScanning(true);
       setScanStatus("scanning");
-      setMessage("Scanning for nearby BLE beacons... Please ensure your device's Bluetooth is enabled.");
+      
+      // More detailed message for mobile users
+      const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        // Show a temporary message to help with mobile device selection
+        toast.info("Mobile Device Selection", {
+          description: "If the device selection appears zoomed, try rotating your device to landscape mode for better visibility.",
+          duration: 5000
+        });
+        setMessage("Scanning for nearby BLE beacons... Please ensure your device's Bluetooth is enabled and location services are turned on.");
+      } else {
+        setMessage("Scanning for nearby BLE beacons... Please ensure your device's Bluetooth is enabled.");
+      }
+      
       setBeaconData(null);
       
       // Check if device is already paired
@@ -162,10 +191,24 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
       // But we can provide a better user experience by explaining this
       
       // Request a BLE device with filters for our specific service UUID
-      const device = await navigator.bluetooth.requestDevice({
-        filters: [{ services: [serviceUUID] }],
-        optionalServices: [serviceUUID]
-      });
+      // Add a timeout to handle cases where the device doesn't appear
+      let device;
+      try {
+        // Create a promise that rejects after 15 seconds if no device is selected
+        const devicePromise = navigator.bluetooth.requestDevice({
+          filters: [{ services: [serviceUUID] }],
+          optionalServices: [serviceUUID]
+        });
+        
+        // Add a timeout to the device selection process
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Device selection timed out. Please try again.")), 15000);
+        });
+        
+        device = await Promise.race([devicePromise, timeoutPromise]);
+      } catch (selectionError) {
+        throw new Error(`Device selection failed: ${selectionError.message}`);
+      }
 
       // Add event listener for disconnection
       device.addEventListener('gattserverdisconnected', handleDisconnection);
@@ -223,6 +266,8 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
           setMessage("Connection failed after multiple attempts. This could be due to:");
           // We'll show detailed troubleshooting steps in a separate section
         }
+      } else if (error.message && error.message.includes("timed out")) {
+        setMessage("Device selection timed out. Please ensure your BLE beacon is nearby and try again.");
       } else {
         setMessage(`Error: ${error.message || "Failed to scan for devices. Make sure Bluetooth is enabled."}`);
       }
