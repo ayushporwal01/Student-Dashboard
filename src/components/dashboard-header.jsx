@@ -11,15 +11,23 @@ export function DashboardHeader({ userData, onProfileClick, onMenuClick }) {
     avatar: "/default-img.png",
   };
 
+  // Add a local state to ensure the menu click is handled properly
+  const handleMenuClick = (e) => {
+    e.stopPropagation();
+    if (onMenuClick) {
+      onMenuClick();
+    }
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
-      <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+      <div className="flex items-center justify-between px-4 sm:px-6 py-3 mx-2 sm:mx-4">
         <div className="flex items-center gap-2 sm:gap-3">
           <Button 
             variant="ghost" 
             size="icon" 
             className="lg:hidden h-14 w-14 sm:h-16 sm:w-16"
-            onClick={onMenuClick}
+            onClick={handleMenuClick}
           >
             <Menu className="h-8 w-8 sm:h-10 sm:w-10" />
           </Button>
@@ -34,7 +42,7 @@ export function DashboardHeader({ userData, onProfileClick, onMenuClick }) {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <div className="text-right hidden sm:block">
+          <div className="text-right hidden sm:block cursor-pointer" onClick={onProfileClick}>
             <div className="text-sm sm:text-lg font-medium text-gray-900 inter-text">
               {student.firstName} {student.lastName}
             </div>

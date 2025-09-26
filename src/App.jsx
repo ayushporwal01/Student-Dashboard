@@ -38,6 +38,15 @@ function DashboardLayout({
   displayText,
   typingComplete
 }) {
+  // Calculate margin based on sidebar state
+  const getMarginLeft = () => {
+    if (isMobile) return "ml-0";
+    return sidebarExpanded ? "ml-52" : "ml-12";
+  };
+
+  // For dashboard page, we want to center content properly
+  const isDashboardPage = currentPage === "dashboard";
+
   return (
     <>
       <DashboardHeader 
@@ -51,16 +60,11 @@ function DashboardLayout({
           onPageChange={handleSidebarNavigation}
           onExpandedChange={handleMenuClick} // Pass the same function that opens the menu to close it
           isMobileMenuOpen={sidebarExpanded && isMobile}
+          isInitiallyExpanded={sidebarExpanded}
         />
-        <main className={cn(
-          "flex-1 transition-all duration-300 ease-in-out flex justify-center",
-          isMobile 
-            ? "ml-0"  // Remove margin on mobile since sidebar slides in
-            : sidebarExpanded 
-            ? "ml-64" 
-            : "ml-16"
-        )}>
+        <main className={`flex-1 transition-all duration-300 ease-in-out flex justify-center ${getMarginLeft()}`}>
           <div className="max-w-6xl w-full p-3 sm:p-4 space-y-4 sm:space-y-6">
+            {/* Welcome text with slide-in animation from outside left - only show on dashboard */}
             {/* Welcome text with slide-in animation from outside left - only show on dashboard */}
             {currentPage === "dashboard" && (
               <div
@@ -219,7 +223,11 @@ function AppContent() {
   };
 
   const handleMenuClick = () => {
-    setSidebarExpanded(prev => !prev);
+    setSidebarExpanded(prev => {
+      const newValue = !prev;
+      console.log("Sidebar expanded state:", newValue); // For debugging
+      return newValue;
+    });
   };
 
   const renderPage = () => {

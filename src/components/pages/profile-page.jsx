@@ -6,8 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User, Mail, Phone, Calendar, GraduationCap, Edit, Save, X, Camera } from "lucide-react";
 
-
-
 export function ProfilePage({ userData, onUpdateUser }) {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -273,7 +271,7 @@ export function ProfilePage({ userData, onUpdateUser }) {
 
 
   return (
-    <div className="pt-6 space-y-4 route-page">
+    <div className="pt-6 space-y-4 max-w-6xl w-full route-page">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2 montserrat-font">

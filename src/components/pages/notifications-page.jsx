@@ -74,7 +74,7 @@ export function NotificationsPage() {
   };
 
   return (
-    <div className="pt-6 space-y-4 route-page">
+    <div className="pt-6 space-y-4 max-w-6xl w-full route-page">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2 montserrat-font">

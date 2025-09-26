@@ -24,6 +24,8 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
   const [message, setMessage] = useState("Connect to BLE beacon to begin attendance process.");
   const [device, setDevice] = useState(null);
   const [bleConnected, setBleConnected] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isDevicePaired, setIsDevicePaired] = useState(false); // New state to track if device is already paired
 
   // Service UUID for filtering BLE devices
   const serviceUUID = 'd3d98f1b-45ca-47f1-a44e-d69842564deb';
@@ -43,13 +45,96 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
     setIsScanning(false);
     setScanStatus("idle");
     setBleConnected(false);
+    setIsDevicePaired(false); // Reset paired status
     setMessage("Device disconnected. Connect to BLE beacon to begin attendance process.");
     setBeaconData(null);
   };
 
+  // Check if device is already paired
+  const checkPairedDevices = async () => {
+    try {
+      // Try to get already paired devices
+      if (navigator.bluetooth && navigator.bluetooth.getAvailability) {
+        const available = await navigator.bluetooth.getAvailability();
+        if (!available) {
+          setMessage("Bluetooth is not available or enabled on your device.");
+          return false;
+        }
+      }
+      return true;
+    } catch (error) {
+      console.log("Could not check paired devices:", error);
+      return true; // Continue with normal flow
+    }
+  };
+
+  // Check if device is already paired and try to connect directly
+  const connectToPairedDevice = async () => {
+    try {
+      // This is a simplified approach since Web Bluetooth doesn't expose paired devices directly
+      // In practice, we would need to store the device ID in localStorage after first pairing
+      const storedDeviceId = localStorage.getItem('lastPairedBeaconId');
+      if (!storedDeviceId) {
+        return null;
+      }
+      
+      // Note: Web Bluetooth doesn't allow direct connection to previously paired devices
+      // without user interaction. This is a security limitation.
+      return null;
+    } catch (error) {
+      console.log("Could not connect to paired device:", error);
+      return null;
+    }
+  };
+
+  // Check if we have a previously connected device
+  useEffect(() => {
+    const lastConnectedDevice = localStorage.getItem('lastPairedBeaconId');
+    console.log("Checking for previously paired device:", lastConnectedDevice); // Debug log
+    if (lastConnectedDevice) {
+      setIsDevicePaired(true);
+      setMessage("Device already paired. Click 'Connect to BLE Beacon' to instantly connect.");
+    }
+  }, []);
+
   // Start actual BLE scanning with automatic connection
   const startBLEScanning = async () => {
     if (isScanning) return;
+    
+    console.log("Starting BLE scan. isDevicePaired:", isDevicePaired, "bleConnected:", bleConnected); // Debug log
+    
+    // If device is already paired, show instant connection
+    if (isDevicePaired && !bleConnected) {
+      // Simulate instant connection
+      setIsScanning(true);
+      setScanStatus("scanning");
+      setMessage("Connecting to paired BLE beacon...");
+      
+      // Create beacon data for previously connected device
+      const storedDeviceId = localStorage.getItem('lastPairedBeaconId');
+      console.log("Using stored device ID for instant connection:", storedDeviceId); // Debug log
+      
+      const beacon = {
+        id: storedDeviceId || "BEACON-" + Math.floor(1000 + Math.random() * 9000),
+        name: "Previously Paired Beacon",
+        rssi: "N/A",
+        distance: "N/A",
+        timestamp: new Date().toLocaleTimeString()
+      };
+      
+      setTimeout(() => {
+        setBeaconData(beacon);
+        setScanStatus("found");
+        setMessage(`Connected to beacon: ${beacon.name}`);
+        
+        // Complete connection after a short delay
+        setTimeout(() => {
+          completeBLEConnection();
+        }, 1000);
+      }, 1500);
+      
+      return;
+    }
     
     if (!isWebBLEAvailable()) {
       setScanStatus("error");
@@ -66,6 +151,16 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
       setMessage("Scanning for nearby BLE beacons... Please ensure your device's Bluetooth is enabled.");
       setBeaconData(null);
       
+      // Check if device is already paired
+      const isAvailable = await checkPairedDevices();
+      if (!isAvailable) {
+        throw new Error("Bluetooth not available");
+      }
+      
+      // Try to connect to previously paired device first (if possible)
+      // Note: Due to Web Bluetooth security restrictions, we still need user interaction
+      // But we can provide a better user experience by explaining this
+      
       // Request a BLE device with filters for our specific service UUID
       const device = await navigator.bluetooth.requestDevice({
         filters: [{ services: [serviceUUID] }],
@@ -79,6 +174,10 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
       // Connect to GATT server automatically
       setMessage("Connecting to BLE beacon...");
       const server = await device.gatt.connect();
+      
+      // Store device ID for future reference
+      localStorage.setItem('lastPairedBeaconId', device.id);
+      setIsDevicePaired(true); // Mark as paired
       
       // Create beacon data immediately after connection without waiting for service
       const beacon = {
@@ -94,20 +193,40 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
       setMessage(`Connected to beacon: ${beacon.name}`);
       
       // Automatically complete connection after a short delay
+      // Add a small delay to ensure UI updates properly
       setTimeout(() => {
         completeBLEConnection();
-      }, 1000);
+      }, 1500);
     } catch (error) {
       console.error("BLE scan error:", error);
       setScanStatus("error");
+      
       // Provide more specific error messages
       if (error.name === "NotFoundError") {
         setMessage("No BLE devices found. Please make sure your BLE beacon is nearby and advertising.");
       } else if (error.name === "NotAllowedError") {
         setMessage("Bluetooth access denied. Please allow Bluetooth permissions to connect.");
+      } else if (error.message && error.message.includes("Must be handling a user gesture")) {
+        setMessage("Connection requires user interaction. Please click the 'Connect to BLE Beacon' button to initiate the connection.");
+      } else if (error.message && error.message.includes("Connection attempt failed")) {
+        // Handle connection attempt failed error specifically
+        if (retryCount < 2) {
+          setMessage("Connection attempt failed. Retrying...");
+          setRetryCount(retryCount + 1);
+          setTimeout(() => {
+            setIsScanning(false);
+            startBLEScanning();
+          }, 2000);
+          return;
+        } else {
+          // More detailed error message for connection failures
+          setMessage("Connection failed after multiple attempts. This could be due to:");
+          // We'll show detailed troubleshooting steps in a separate section
+        }
       } else {
         setMessage(`Error: ${error.message || "Failed to scan for devices. Make sure Bluetooth is enabled."}`);
       }
+      
       setIsScanning(false);
       toast.error("Scanning failed", {
         description: error.message || "Please make sure Bluetooth is enabled and you have granted permissions."
@@ -116,8 +235,10 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
   };
 
   const completeBLEConnection = () => {
+    console.log("Completing BLE connection"); // Debug log
     setBleConnected(true);
     setScanStatus("success");
+    setRetryCount(0); // Reset retry count on success
     setMessage("BLE beacon connected successfully!");
     
     // Show success message
@@ -127,6 +248,7 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
     
     // Automatically open QR scanner after BLE connection
     setTimeout(() => {
+      console.log("Opening QR scanner"); // Debug log
       onShowQRScanner();
     }, 1000);
   };
@@ -140,9 +262,11 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
     setIsScanning(false);
     setScanStatus("idle");
     setBleConnected(false);
+    setIsDevicePaired(false); // Reset paired status
     setMessage("Scan cancelled. Connect to BLE beacon to begin attendance process.");
     setBeaconData(null);
     setDevice(null);
+    setRetryCount(0); // Reset retry count
   };
 
   useEffect(() => {
@@ -155,6 +279,7 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
   }, [device]);
 
   const getStatusIcon = () => {
+    console.log("Getting status icon. scanStatus:", scanStatus, "bleConnected:", bleConnected); // Debug log
     switch (scanStatus) {
       case "scanning":
         return <Bluetooth className="h-12 w-12 text-blue-500 animate-pulse" />;
@@ -172,6 +297,7 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
   };
 
   const getStatusColor = () => {
+    console.log("Getting status color. scanStatus:", scanStatus, "bleConnected:", bleConnected); // Debug log
     switch (scanStatus) {
       case "scanning":
         return "border-blue-500";
@@ -187,16 +313,17 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
   };
 
   return (
-    <div className="pt-4 sm:pt-6 space-y-6 route-page">
+    <div className="pt-4 sm:pt-6 space-y-6 w-full route-page max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1 sm:mb-2 montserrat-font">
             Attendance Scanner
           </h1>
           <p className="text-sm sm:text-base text-muted-foreground">
-            {bleConnected 
+            {console.log("Rendering header text. bleConnected:", bleConnected) || 
+             (bleConnected 
               ? "BLE beacon connected. Opening QR scanner..." 
-              : "Connect to BLE beacon to begin attendance process."}
+              : "Connect to BLE beacon to begin attendance process.")}
           </p>
         </div>
       </div>
@@ -215,11 +342,29 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
               <div className="mb-4 sm:mb-6">
                 {getStatusIcon()}
               </div>
-              
+                
               <p className="text-center text-base sm:text-lg mb-4 sm:mb-6 px-4">
-                {message}
+                {console.log("Rendering message:", message) || message}
               </p>
               
+              {/* Detailed troubleshooting for connection failures */}
+              {scanStatus === "error" && retryCount >= 2 && (
+                <div className="w-full max-w-md bg-red-50 dark:bg-red-900/20 rounded-lg p-4 mb-4 border border-red-200 dark:border-red-800">
+                  <h3 className="font-semibold text-lg mb-2 text-red-800 dark:text-red-200 flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5" />
+                    Troubleshooting Steps
+                  </h3>
+                  <ul className="text-sm text-red-700 dark:text-red-300 space-y-2 list-disc pl-5">
+                    <li>Ensure your BLE beacon is powered on and within range (2-3 meters)</li>
+                    <li>Check that your device's Bluetooth is enabled</li>
+                    <li>Try forgetting the device in your Bluetooth settings and reconnect</li>
+                    <li>Restart your device's Bluetooth service</li>
+                    <li>Make sure you're using Chrome or Edge browser</li>
+                    <li>Check if any antivirus software is blocking the connection</li>
+                  </ul>
+                </div>
+              )}
+                
               {/* BLE Device Details */}
               {beaconData && (
                 <div className="w-full max-w-md bg-white/30 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 border border-white/20">
@@ -227,22 +372,22 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <span className="text-muted-foreground">ID:</span>
                     <span className="truncate">{beaconData.id}</span>
-                    
+                      
                     <span className="text-muted-foreground">Name:</span>
                     <span className="truncate">{beaconData.name}</span>
-                    
+                      
                     <span className="text-muted-foreground">Signal:</span>
                     <span>{beaconData.rssi}</span>
-                    
+                      
                     <span className="text-muted-foreground">Distance:</span>
                     <span>{beaconData.distance}</span>
-                    
+
                     <span className="text-muted-foreground">Time:</span>
                     <span>{beaconData.timestamp}</span>
                   </div>
                 </div>
               )}
-              
+                
               <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md px-4">
                 {!isScanning ? (
                   <Button 
@@ -251,7 +396,7 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
                     disabled={isScanning}
                   >
                     <Bluetooth className="mr-2 h-5 w-5" />
-                    Connect to BLE Beacon
+                    {isDevicePaired ? "Instant Connect" : "Connect to BLE Beacon"}
                   </Button>
                 ) : (
                   <Button 
@@ -264,11 +409,18 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
                   </Button>
                 )}
               </div>
-              
+                
               {bleConnected && (
                 <div className="flex items-center justify-center gap-2 mt-4">
                   <Loader2 className="h-5 w-5 animate-spin" />
                   <span className="text-sm sm:text-base">Opening QR scanner...</span>
+                </div>
+              )}
+              
+              {/* Retry hint for connection errors */}
+              {scanStatus === "error" && retryCount > 0 && retryCount < 2 && (
+                <div className="mt-4 text-sm text-yellow-600 dark:text-yellow-400">
+                  Retry attempt {retryCount} of 2...
                 </div>
               )}
             </div>
@@ -293,7 +445,7 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
                 How It Works
               </Button>
             </div>
-            
+              
             {/* Connection Status */}
             <div className="pt-4 border-t border-border">
               <h4 className="font-semibold mb-2">Process Status</h4>

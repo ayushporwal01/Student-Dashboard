@@ -224,7 +224,7 @@ export function HistoryPage() {
   const todayAttendance = attendanceProgressData[attendanceProgressData.length - 1]?.attendance || 0;
 
   return (
-    <div className="pt-6 space-y-6">
+    <div className="pt-6 space-y-6 max-w-6xl w-full">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-foreground mb-2 montserrat-font">Attendance History</h1>
       </div>
@@ -458,7 +458,7 @@ export function HistoryPage() {
                 </SelectContent>
               </Select>
             </div>
-            
+          
             <div className="flex-1 min-w-[200px]">
               <label className="text-sm font-medium mb-1 block">Month</label>
               <Select value={filters.month} onValueChange={(value) => handleFilterChange('month', value)}>
@@ -473,7 +473,7 @@ export function HistoryPage() {
                 </SelectContent>
               </Select>
             </div>
-            
+          
             <div className="flex-1 min-w-[200px]">
               <label className="text-sm font-medium mb-1 block">Status</label>
               <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>

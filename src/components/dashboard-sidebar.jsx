@@ -13,8 +13,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useRef, useEffect } from "react";
 import { gsap } from "gsap";
 
-export function DashboardSidebar({ currentPage, onPageChange, onExpandedChange, isMobileMenuOpen }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export function DashboardSidebar({ currentPage, onPageChange, onExpandedChange, isMobileMenuOpen, isInitiallyExpanded = false }) {
+  const [isExpanded, setIsExpanded] = useState(isInitiallyExpanded);
   const isMobile = useIsMobile();
   const topLineRef = useRef(null);
   const middleLineRef = useRef(null);
@@ -60,13 +60,6 @@ export function DashboardSidebar({ currentPage, onPageChange, onExpandedChange, 
     }
   }, [isMobileMenuOpen, isMobile]);
 
-  // Also handle the case when we're no longer on mobile
-  useEffect(() => {
-    if (!isMobile) {
-      setIsExpanded(true); // Always expanded on desktop
-    }
-  }, [isMobile]);
-
   const menuItems = [
     { icon: Home, label: "Dashboard", page: "dashboard" },
     { icon: User, label: "Profile", page: "profile" },
@@ -109,6 +102,9 @@ export function DashboardSidebar({ currentPage, onPageChange, onExpandedChange, 
     }
   };
 
+  // Add a ref to the sidebar to handle click outside events
+  const sidebarRef = useRef(null);
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -117,12 +113,15 @@ export function DashboardSidebar({ currentPage, onPageChange, onExpandedChange, 
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => {
             setIsExpanded(false);
-            onExpandedChange?.(false);
+            if (typeof onExpandedChange === 'function') {
+              onExpandedChange(false);
+            }
           }}
         />
       )}
 
       <aside
+        ref={sidebarRef}
         className={cn(
           "glass-sidebar fixed left-0 top-0 h-screen transition-all duration-300 ease-in-out z-40",
           isMobile
