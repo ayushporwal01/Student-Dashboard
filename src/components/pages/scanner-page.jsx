@@ -12,9 +12,7 @@ import {
   Link,
   HelpCircle,
   Loader2,
-  X,
-  Smartphone,
-  Monitor
+  X
 } from "lucide-react";
 import { useAttendance } from "@/contexts/attendance-context";
 import { toast } from "sonner";
@@ -393,9 +391,6 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
     }
   };
 
-  // Check if user is on mobile device
-  const isMobileDevice = /Mobi|Android/i.test(navigator.userAgent);
-
   return (
     <div className="pt-4 sm:pt-6 space-y-6 w-full route-page max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
@@ -430,37 +425,6 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
               <p className="text-center text-base sm:text-lg mb-4 sm:mb-6 px-4">
                 {console.log("Rendering message:", message) || message}
               </p>
-              
-              {/* Mobile-specific instructions */}
-              {isMobileDevice && (
-                <div className="w-full max-w-md bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-4 border border-blue-200 dark:border-blue-800">
-                  <h3 className="font-semibold text-lg mb-2 text-blue-800 dark:text-blue-200 flex items-center gap-2">
-                    <Smartphone className="h-5 w-5" />
-                    Mobile Device Instructions
-                  </h3>
-                  <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-2 list-disc pl-5">
-                    <li>Make sure you're using Chrome browser on Android</li>
-                    <li>Ensure location services are enabled</li>
-                    <li>Keep the app in foreground during scanning</li>
-                    <li>Try moving closer to the beacon</li>
-                  </ul>
-                </div>
-              )}
-              
-              {/* Desktop-specific instructions */}
-              {!isMobileDevice && (
-                <div className="w-full max-w-md bg-green-50 dark:bg-green-900/20 rounded-lg p-4 mb-4 border border-green-200 dark:border-green-800">
-                  <h3 className="font-semibold text-lg mb-2 text-green-800 dark:text-green-200 flex items-center gap-2">
-                    <Monitor className="h-5 w-5" />
-                    Desktop Device Instructions
-                  </h3>
-                  <ul className="text-sm text-green-700 dark:text-green-300 space-y-2 list-disc pl-5">
-                    <li>Ensure Bluetooth is enabled on your computer</li>
-                    <li>Make sure the beacon is powered and advertising</li>
-                    <li>Check that no other application is using the beacon</li>
-                  </ul>
-                </div>
-              )}
               
               {/* Detailed troubleshooting for connection failures */}
               {scanStatus === "error" && retryCount >= 2 && (
