@@ -12,7 +12,9 @@ import {
   Link,
   HelpCircle,
   Loader2,
-  X
+  X,
+  Smartphone,
+  Monitor
 } from "lucide-react";
 import { useAttendance } from "@/contexts/attendance-context";
 import { toast } from "sonner";
@@ -30,6 +32,7 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
   const [showCustomPicker, setShowCustomPicker] = useState(false);
   const [availableDevices, setAvailableDevices] = useState([]);
   const [isScanningForDevices, setIsScanningForDevices] = useState(false);
+  const [deviceScanAttempted, setDeviceScanAttempted] = useState(false);
 
   // Service UUID for filtering BLE devices
   const serviceUUID = 'd3d98f1b-45ca-47f1-a44e-d69842564deb';
@@ -49,25 +52,16 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
       const isChrome = /Chrome/i.test(navigator.userAgent) && /Google Inc/i.test(navigator.vendor);
       const isEdge = /Edg/i.test(navigator.userAgent);
       const isOpera = /OPR/i.test(navigator.userAgent);
+      const isSamsung = /SamsungBrowser/i.test(navigator.userAgent);
       
-      if (!(isChrome || isEdge || isOpera)) {
+      // Chrome on Android is the most reliable for Web Bluetooth
+      if (!(isChrome || isEdge || isOpera || isSamsung)) {
         console.log("Mobile browser may not support Web Bluetooth properly");
         return false;
       }
     }
     
     return true;
-  };
-
-  // Handle device disconnection
-  const handleDisconnection = () => {
-    setDevice(null);
-    setIsScanning(false);
-    setScanStatus("idle");
-    setBleConnected(false);
-    setIsDevicePaired(false); // Reset paired status
-    setMessage("Device disconnected. Connect to BLE beacon to begin attendance process.");
-    setBeaconData(null);
   };
 
   // Check if device is already paired
@@ -102,9 +96,11 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
     try {
       setIsScanningForDevices(true);
       setAvailableDevices([]);
+      setDeviceScanAttempted(true);
       
       // Request a BLE device with filters for our specific service UUID
       const device = await navigator.bluetooth.requestDevice({
+        // Try with service filter first
         filters: [{ services: [serviceUUID] }],
         optionalServices: [serviceUUID]
       });
@@ -127,7 +123,48 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
       console.error("BLE scan error:", error);
       setIsScanningForDevices(false);
       
-      if (error.name === "NotFoundError") {
+      // If service filter fails, try accepting all BLE devices (fallback)
+      if (error.name === "NotFoundError" || error.message.includes("No device selected")) {
+        try {
+          setIsScanningForDevices(true);
+          setMessage("Scanning for all nearby BLE devices...");
+          
+          // Fallback: Accept any BLE device
+          const device = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true
+          });
+          
+          // Check if the device has our service
+          const newDevice = {
+            id: device.id,
+            name: device.name || "Unknown Device",
+            rssi: "N/A",
+            device: device
+          };
+          
+          setAvailableDevices([newDevice]);
+          setShowCustomPicker(true);
+          setIsScanningForDevices(false);
+          
+          // Auto-select the device
+          selectDevice(newDevice);
+        } catch (fallbackError) {
+          console.error("BLE fallback scan error:", fallbackError);
+          setIsScanningForDevices(false);
+          
+          if (fallbackError.name === "NotFoundError") {
+            setMessage("No BLE devices found. Please make sure your BLE beacon is nearby and advertising.");
+          } else if (fallbackError.name === "NotAllowedError") {
+            setMessage("Bluetooth access denied. Please allow Bluetooth permissions to connect.");
+          } else {
+            setMessage(`Error: ${fallbackError.message || "Failed to scan for devices. Make sure Bluetooth is enabled."}`);
+          }
+          
+          toast.error("Scanning failed", {
+            description: fallbackError.message || "Please make sure Bluetooth is enabled and you have granted permissions."
+          });
+        }
+      } else if (error.name === "NotFoundError") {
         setMessage("No BLE devices found. Please make sure your BLE beacon is nearby and advertising.");
       } else if (error.name === "NotAllowedError") {
         setMessage("Bluetooth access denied. Please allow Bluetooth permissions to connect.");
@@ -135,9 +172,11 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
         setMessage(`Error: ${error.message || "Failed to scan for devices. Make sure Bluetooth is enabled."}`);
       }
       
-      toast.error("Scanning failed", {
-        description: error.message || "Please make sure Bluetooth is enabled and you have granted permissions."
-      });
+      if (!(error.name === "NotFoundError" && deviceScanAttempted)) {
+        toast.error("Scanning failed", {
+          description: error.message || "Please make sure Bluetooth is enabled and you have granted permissions."
+        });
+      }
     }
   };
 
@@ -188,6 +227,17 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
         description: error.message || "Failed to connect to the selected device."
       });
     }
+  };
+
+  // Handle device disconnection
+  const handleDisconnection = () => {
+    setDevice(null);
+    setIsScanning(false);
+    setScanStatus("idle");
+    setBleConnected(false);
+    setIsDevicePaired(false); // Reset paired status
+    setMessage("Device disconnected. Connect to BLE beacon to begin attendance process.");
+    setBeaconData(null);
   };
 
   // Check if device is already paired and try to connect directly
@@ -297,6 +347,7 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
     setRetryCount(0); // Reset retry count
     setShowCustomPicker(false);
     setAvailableDevices([]);
+    setDeviceScanAttempted(false);
   };
 
   useEffect(() => {
@@ -342,6 +393,9 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
     }
   };
 
+  // Check if user is on mobile device
+  const isMobileDevice = /Mobi|Android/i.test(navigator.userAgent);
+
   return (
     <div className="pt-4 sm:pt-6 space-y-6 w-full route-page max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
@@ -376,6 +430,37 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
               <p className="text-center text-base sm:text-lg mb-4 sm:mb-6 px-4">
                 {console.log("Rendering message:", message) || message}
               </p>
+              
+              {/* Mobile-specific instructions */}
+              {isMobileDevice && (
+                <div className="w-full max-w-md bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-4 border border-blue-200 dark:border-blue-800">
+                  <h3 className="font-semibold text-lg mb-2 text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                    <Smartphone className="h-5 w-5" />
+                    Mobile Device Instructions
+                  </h3>
+                  <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-2 list-disc pl-5">
+                    <li>Make sure you're using Chrome browser on Android</li>
+                    <li>Ensure location services are enabled</li>
+                    <li>Keep the app in foreground during scanning</li>
+                    <li>Try moving closer to the beacon</li>
+                  </ul>
+                </div>
+              )}
+              
+              {/* Desktop-specific instructions */}
+              {!isMobileDevice && (
+                <div className="w-full max-w-md bg-green-50 dark:bg-green-900/20 rounded-lg p-4 mb-4 border border-green-200 dark:border-green-800">
+                  <h3 className="font-semibold text-lg mb-2 text-green-800 dark:text-green-200 flex items-center gap-2">
+                    <Monitor className="h-5 w-5" />
+                    Desktop Device Instructions
+                  </h3>
+                  <ul className="text-sm text-green-700 dark:text-green-300 space-y-2 list-disc pl-5">
+                    <li>Ensure Bluetooth is enabled on your computer</li>
+                    <li>Make sure the beacon is powered and advertising</li>
+                    <li>Check that no other application is using the beacon</li>
+                  </ul>
+                </div>
+              )}
               
               {/* Detailed troubleshooting for connection failures */}
               {scanStatus === "error" && retryCount >= 2 && (
