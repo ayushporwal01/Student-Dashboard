@@ -1,0 +1,232 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Minimal theme with clean aesthetics */
+  --background: #ffffff;
+  --foreground: #374151;
+  --card: #ffffff;
+  --card-foreground: #374151;
+  --popover: #ffffff;
+  --popover-foreground: #374151;
+  --primary: #1f2937;
+  --primary-foreground: #ffffff;
+  --secondary: #6b7280;
+  --secondary-foreground: #ffffff;
+  --muted: #f9fafb;
+  --muted-foreground: #6b7280;
+  --accent: #1f2937;
+  --accent-foreground: #ffffff;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #e5e7eb;
+  --input: #f9fafb;
+  --ring: #1f2937;
+  --chart-1: #1f2937;
+  --chart-2: #6b7280;
+  --chart-3: #9ca3af;
+  --chart-4: #d1d5db;
+  --chart-5: #e5e7eb;
+  --radius: 0.5rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #374151;
+  --sidebar-primary: #1f2937;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #6b7280;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #e5e7eb;
+  --sidebar-ring: #1f2937;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  /* Apply clean, minimal font */
+  *, *::before, *::after {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  }
+  
+  h1, h2, h3, h4, h5, h6, p, span, div, button, input, textarea, label {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  }
+  
+  html {
+    font-size: 16px;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    background: linear-gradient(135deg, #ada996, #f2f2f2, #dbdbdb, #eaeaea);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    font-weight: 400;
+    font-style: normal;
+    font-size: 1rem;
+    line-height: 1.6;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Custom font faces */
+@font-face {
+  font-family: 'UnifixSPDemo';
+  src: url('/fonts/UnifixSPDemo.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.present {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.status-badge.absent {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+/* Glass effect styles */
+.glass-header {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.glass-sidebar {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-right: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    4px 0 20px rgba(0, 0, 0, 0.05),
+    inset 1px 0 0 rgba(255, 255, 255, 0.6);
+}
+
+/* Ensure header positioning */
+header.fixed {
+  position: fixed !important;
+}
+
+header {
+  position: fixed !important;
+}
+
+.typing-cursor {
+  display: inline-block;
+  background: #1f2937;
+  width: 2px;
+  margin-left: 2px;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.1);
+}
+
+.typing-animation {
+  text-align: center;
+}
+
+.typing-animation.completed,
+.completed {
+  text-align: center;
+}
+
+/* Minimal button and input styles */
+.route-page {
+  padding-top: 1.5rem;
+}
+
+.route-page h1 {
+  margin-top: 0 !important;
+  line-height: 1.2;
+}
+
+/* Hide input number arrows */
+.hide-arrows::-webkit-outer-spin-button,
+.hide-arrows::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.hide-arrows {
+  -moz-appearance: textfield;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+}
+
+@media (max-width: 480px) {
+}
+
+/* Clean Inter font application */
+.font-inter, .font-inter * {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+/* Montserrat font for welcome text */
+.montserrat-font {
+  font-family: 'Montserrat', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+/* Unica One font for headings (fallback) */
+.unica-one-font {
+  font-family: 'Unica One', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+/* Poppins font for welcome text */
+.poppins-font {
+  font-family: 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+/* Nexa font for welcome text (deprecated) */
+.nexa-font {
+  font-family: 'Nexa', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+@layer utilities {
+  .inter-text {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  }
+  
+  .text-enhanced {
+    text-shadow: none;
+  }
+  
+  .border-gradient {
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  
+  .shimmer {
+    background: none;
+  }
+  
+  .floating {
+    /* Removed animation */
+  }
+  
+  .pulse-glow {
+    /* Removed animation */
+  }
+  
+  .scale-hover {
+    /* Removed hover animation */
+  }
+}
