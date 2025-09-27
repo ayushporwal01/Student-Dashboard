@@ -30,6 +30,7 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
   const [retryCount, setRetryCount] = useState(0);
   const [isScanningForDevices, setIsScanningForDevices] = useState(false);
   const [deviceScanAttempted, setDeviceScanAttempted] = useState(false);
+  const [isDevicePaired, setIsDevicePaired] = useState(false);
 
   // Service UUID for filtering BLE devices
   const serviceUUID = 'd3d98f1b-45ca-47f1-a44e-d69842564deb';
@@ -167,7 +168,6 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
   // Select a device from the custom picker
   const selectDevice = async (selectedDevice) => {
     try {
-      setShowCustomPicker(false);
       setIsScanning(true);
       setScanStatus("scanning");
       setMessage("Connecting to BLE beacon...");
@@ -292,8 +292,6 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
     setBeaconData(null);
     setDevice(null);
     setRetryCount(0); // Reset retry count
-    setShowCustomPicker(false);
-    setAvailableDevices([]);
     setDeviceScanAttempted(false);
   };
 
