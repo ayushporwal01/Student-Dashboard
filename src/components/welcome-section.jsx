@@ -39,6 +39,19 @@ export function WelcomeSection({ selectedDate, selectedDateData, showStatusOnly,
   const getDateText = () => {
     if (!selectedDate) return "Today's Status";
 
+    // Special handling for Sept 15 and 16, 2025
+    if (selectedDate.getFullYear() === 2025 && 
+        selectedDate.getMonth() === 8 && // September (0-indexed)
+        selectedDate.getDate() === 15) {
+      return "Yesterday's Status";
+    }
+    
+    if (selectedDate.getFullYear() === 2025 && 
+        selectedDate.getMonth() === 8 && // September (0-indexed)
+        selectedDate.getDate() === 16) {
+      return "Today's Status";
+    }
+
     const today = new Date();
     // Reset time part for accurate date comparison
     const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
