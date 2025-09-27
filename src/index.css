@@ -186,7 +186,7 @@
   
   body {
     @apply bg-background text-foreground;
-    background: linear-gradient(135deg, #F5E3E6, #D9E4F5);
+    background: linear-gradient(135deg, #ada996, #f2f2f2, #dbdbdb, #eaeaea);
     background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
