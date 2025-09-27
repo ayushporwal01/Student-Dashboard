@@ -12,7 +12,9 @@ import {
   Link,
   HelpCircle,
   Loader2,
-  X
+  X,
+  ChevronRight,
+  RotateCw
 } from "lucide-react";
 import { useAttendance } from "@/contexts/attendance-context";
 import { toast } from "sonner";
@@ -26,9 +28,6 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
   const [device, setDevice] = useState(null);
   const [bleConnected, setBleConnected] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
-  const [isDevicePaired, setIsDevicePaired] = useState(false); // New state to track if device is already paired
-  const [showCustomPicker, setShowCustomPicker] = useState(false);
-  const [availableDevices, setAvailableDevices] = useState([]);
   const [isScanningForDevices, setIsScanningForDevices] = useState(false);
   const [deviceScanAttempted, setDeviceScanAttempted] = useState(false);
 
@@ -93,7 +92,6 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
 
     try {
       setIsScanningForDevices(true);
-      setAvailableDevices([]);
       setDeviceScanAttempted(true);
       
       // Request a BLE device with filters for our specific service UUID
@@ -103,20 +101,14 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
         optionalServices: [serviceUUID]
       });
       
-      // Add the found device to our list
-      const newDevice = {
+      // Directly select the device without showing custom picker
+      await selectDevice({
         id: device.id,
         name: device.name || "Unknown Device",
         rssi: "N/A",
         device: device
-      };
+      });
       
-      setAvailableDevices([newDevice]);
-      setShowCustomPicker(true);
-      setIsScanningForDevices(false);
-      
-      // Auto-select the device
-      selectDevice(newDevice);
     } catch (error) {
       console.error("BLE scan error:", error);
       setIsScanningForDevices(false);
@@ -132,47 +124,41 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
             acceptAllDevices: true
           });
           
-          // Check if the device has our service
-          const newDevice = {
+          // Directly select the device without showing custom picker
+          await selectDevice({
             id: device.id,
             name: device.name || "Unknown Device",
             rssi: "N/A",
             device: device
-          };
+          });
           
-          setAvailableDevices([newDevice]);
-          setShowCustomPicker(true);
-          setIsScanningForDevices(false);
-          
-          // Auto-select the device
-          selectDevice(newDevice);
         } catch (fallbackError) {
           console.error("BLE fallback scan error:", fallbackError);
           setIsScanningForDevices(false);
           
           if (fallbackError.name === "NotFoundError") {
-            setMessage("No BLE devices found. Please make sure your BLE beacon is nearby and advertising.");
+            setMessage("No BLE devices found. Please make sure your BLE beacon is nearby, powered on, and advertising.");
           } else if (fallbackError.name === "NotAllowedError") {
             setMessage("Bluetooth access denied. Please allow Bluetooth permissions to connect.");
           } else {
-            setMessage(`Error: ${fallbackError.message || "Failed to scan for devices. Make sure Bluetooth is enabled."}`);
+            setMessage(`Error: ${fallbackError.message || "Failed to scan for devices. Make sure Bluetooth is enabled and your beacon is powered on."}`);
           }
           
           toast.error("Scanning failed", {
-            description: fallbackError.message || "Please make sure Bluetooth is enabled and you have granted permissions."
+            description: fallbackError.message || "Please make sure Bluetooth is enabled, your beacon is powered on, and you have granted permissions."
           });
         }
       } else if (error.name === "NotFoundError") {
-        setMessage("No BLE devices found. Please make sure your BLE beacon is nearby and advertising.");
+        setMessage("No BLE devices found. Please make sure your BLE beacon is nearby, powered on, and advertising.");
       } else if (error.name === "NotAllowedError") {
         setMessage("Bluetooth access denied. Please allow Bluetooth permissions to connect.");
       } else {
-        setMessage(`Error: ${error.message || "Failed to scan for devices. Make sure Bluetooth is enabled."}`);
+        setMessage(`Error: ${error.message || "Failed to scan for devices. Make sure Bluetooth is enabled and your beacon is powered on."}`);
       }
       
       if (!(error.name === "NotFoundError" && deviceScanAttempted)) {
         toast.error("Scanning failed", {
-          description: error.message || "Please make sure Bluetooth is enabled and you have granted permissions."
+          description: error.message || "Please make sure Bluetooth is enabled, your beacon is powered on, and you have granted permissions."
         });
       }
     }
@@ -197,7 +183,6 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
       
       // Store device ID for future reference
       localStorage.setItem('lastPairedBeaconId', device.id);
-      setIsDevicePaired(true); // Mark as paired
       
       // Create beacon data immediately after connection without waiting for service
       const beacon = {
@@ -259,54 +244,18 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
 
   // Check if we have a previously connected device
   useEffect(() => {
-    const lastConnectedDevice = localStorage.getItem('lastPairedBeaconId');
-    console.log("Checking for previously paired device:", lastConnectedDevice); // Debug log
-    if (lastConnectedDevice) {
-      setIsDevicePaired(true);
-      setMessage("Device already paired. Click 'Connect to BLE Beacon' to instantly connect.");
-    }
+    // Removed instant connect functionality
+    // Always show the standard message
+    setMessage("Connect to BLE beacon to begin attendance process.");
   }, []);
 
   // Start actual BLE scanning with automatic connection
   const startBLEScanning = async () => {
     if (isScanning) return;
     
-    console.log("Starting BLE scan. isDevicePaired:", isDevicePaired, "bleConnected:", bleConnected); // Debug log
+    console.log("Starting BLE scan. bleConnected:", bleConnected); // Debug log
     
-    // If device is already paired, show instant connection
-    if (isDevicePaired && !bleConnected) {
-      // Simulate instant connection
-      setIsScanning(true);
-      setScanStatus("scanning");
-      setMessage("Connecting to paired BLE beacon...");
-      
-      // Create beacon data for previously connected device
-      const storedDeviceId = localStorage.getItem('lastPairedBeaconId');
-      console.log("Using stored device ID for instant connection:", storedDeviceId); // Debug log
-      
-      const beacon = {
-        id: storedDeviceId || "BEACON-" + Math.floor(1000 + Math.random() * 9000),
-        name: "Previously Paired Beacon",
-        rssi: "N/A",
-        distance: "N/A",
-        timestamp: new Date().toLocaleTimeString()
-      };
-      
-      setTimeout(() => {
-        setBeaconData(beacon);
-        setScanStatus("found");
-        setMessage(`Connected to beacon: ${beacon.name}`);
-        
-        // Complete connection after a short delay
-        setTimeout(() => {
-          completeBLEConnection();
-        }, 1000);
-      }, 1500);
-      
-      return;
-    }
-    
-    // Show custom picker instead of browser's default picker
+    // Always scan for devices - remove instant connect functionality
     scanForDevices();
   };
 
@@ -468,7 +417,7 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
               )}
                 
               <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md px-4">
-                {!isScanning && !showCustomPicker ? (
+                {!isScanning && !isScanningForDevices ? (
                   <Button 
                     onClick={startBLEScanning} 
                     className="px-6 py-5 text-base sm:text-lg w-full"
@@ -480,7 +429,7 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                         Scanning...
                       </>
-                    ) : isDevicePaired ? "Instant Connect" : "Connect to BLE Beacon"}
+                    ) : "Connect to BLE Beacon"}
                   </Button>
                 ) : (
                   <Button 
@@ -493,7 +442,7 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
                   </Button>
                 )}
               </div>
-                
+
               {bleConnected && (
                 <div className="flex items-center justify-center gap-2 mt-4">
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -529,7 +478,7 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
                 How It Works
               </Button>
             </div>
-              
+            
             {/* Connection Status */}
             <div className="pt-4 border-t border-border">
               <h4 className="font-semibold mb-2">Process Status</h4>
@@ -551,68 +500,6 @@ export function ScannerPage({ userData, onShowHowItWorks, onShowQRScanner }) {
         </Card>
       </div>
 
-      {/* Custom Device Picker Modal */}
-      {showCustomPicker && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold">Select BLE Device</h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={cancelScan}
-                className="p-0 h-auto"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-            
-            <div className="p-4 flex-1 overflow-y-auto">
-              {isScanningForDevices ? (
-                <div className="flex flex-col items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin mb-4" />
-                  <p>Scanning for devices...</p>
-                  <p className="text-sm text-gray-500 mt-2">Make sure your BLE beacon is nearby and advertising</p>
-                </div>
-              ) : availableDevices.length > 0 ? (
-                <div className="space-y-2">
-                  {availableDevices.map((device) => (
-                    <div 
-                      key={device.id}
-                      className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
-                      onClick={() => selectDevice(device)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{device.name}</p>
-                          <p className="text-sm text-gray-500">ID: {device.id.substring(0, 8)}...</p>
-                        </div>
-                        <Bluetooth className="h-5 w-5 text-blue-500" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Bluetooth className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                  <p className="mb-4">No devices found</p>
-                  <Button onClick={scanForDevices}>Scan Again</Button>
-                </div>
-              )}
-            </div>
-            
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={cancelScan}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

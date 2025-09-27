@@ -40,7 +40,17 @@ export function WelcomeSection({ selectedDate, selectedDateData, showStatusOnly,
     if (!selectedDate) return "Today's Status";
 
     const today = new Date();
-    const diffTime = selectedDate.getTime() - today.getTime();
+    // Reset time part for accurate date comparison
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    // Handle case where selectedDate might be null/undefined
+    if (!selectedDate) {
+      return "Today's Status";
+    }
+    
+    const selectedDateOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+    
+    const diffTime = selectedDateOnly.getTime() - todayDate.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) return "Today's Status";
@@ -68,11 +78,15 @@ export function WelcomeSection({ selectedDate, selectedDateData, showStatusOnly,
     const today = new Date();
     // Reset time part for accurate date comparison
     const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const selectedDateOnly = selectedDate && new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
     
-    // Calculate the difference in days
-    const timeDiff = selectedDateOnly && selectedDateOnly.getTime() - todayDate.getTime();
-    const dayDiff = timeDiff && Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+    // Handle case where selectedDate might be null/undefined
+    let dayDiff = null;
+    if (selectedDate) {
+      const selectedDateOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+      // Calculate the difference in days
+      const timeDiff = selectedDateOnly.getTime() - todayDate.getTime();
+      dayDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+    }
     
     const isTomorrow = dayDiff === 1;
     const isToday = dayDiff === 0;
@@ -104,9 +118,9 @@ export function WelcomeSection({ selectedDate, selectedDateData, showStatusOnly,
     // Prioritize selectedDateData if available, otherwise use fallback logic
     if (selectedDateData?.subjectDetails && selectedDateData.subjectDetails.length > 0) {
       subjectsToShow = selectedDateData.subjectDetails;
-    } else if (isTomorrow) {
+    } else if (dayDiff !== null && isTomorrow) {
       subjectsToShow = tomorrowSubjects;
-    } else if (dayDiff > 0) {
+    } else if (dayDiff !== null && dayDiff > 0) {
       // Future dates show scheduled classes
       subjectsToShow = tomorrowSubjects;
     } else {
